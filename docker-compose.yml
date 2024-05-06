@@ -1,0 +1,62 @@
+version: "3.7"
+services:
+  nginx-proxy:
+    image: jwilder/nginx-proxy
+    container_name: nginx-proxy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+      - ./certs:/etc/nginx/certs
+      - ./vhost:/etc/nginx/vhost.d
+      - ./html:/usr/share/nginx/html
+  nginx-proxy-acme:
+    image: nginxproxy/acme-companion
+    container_name: nginx-proxy-acme
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./certs:/etc/nginx/certs
+      - ./vhost:/etc/nginx/vhost.d
+      - ./html:/usr/share/nginx/html
+      - ./acme:/etc/acme.sh
+    environment:
+      - NGINX_PROXY_CONTAINER=nginx-proxy
+      - DEFAULT_EMAIL=yzyrmb8@gmail.com
+  redis:
+    image: redis:alpine
+    container_name: redis
+    volumes:
+      - ./redis/redis.conf:/usr/local/etc/redis/redis.conf
+    restart: always
+    expose:
+      - 6379
+  backend:
+    image: ghcr.io/uoft-utsc-cs-sandbox/backend-sharedesque
+    container_name: backend
+    volumes:
+      - ./backend/.env:/usr/src/app/.env
+    restart: always
+    expose:
+      - 8000
+    environment:
+      - VIRTUAL_HOST=api.sharedesque.xyz
+      - LETSENCRYPT_HOST=api.sharedesque.xyz
+  peerjs:
+    image: peerjs/peerjs-server
+    container_name: peerjs
+    restart: always
+    expose:
+      - 9000
+    environment:
+      - VIRTUAL_HOST=peerjs.sharedesque.xyz
+      - LETSENCRYPT_HOST=peerjs.sharedesque.xyz
+  frontend:
+    image: ghcr.io/uoft-utsc-cs-sandbox/frontend-sharedesque
+    container_name: frontend
+    restart: always
+    expose:
+      - 3000
+    environment:
+      - VIRTUAL_HOST=sharedesque.xyz
+      - LETSENCRYPT_HOST=sharedesque.xyz
